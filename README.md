@@ -13,8 +13,8 @@ All text is converted to outlines, mathtext included (`"$\hat{y} = \sum_i w_i \v
 frames pixel for pixel on any machine.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="420" alt="cardkit tour (animated SVG)">
-  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour.gif" width="420" alt="cardkit tour (GIF)">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="48%" alt="cardkit tour (animated SVG)">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour.gif" width="48%" alt="cardkit tour (GIF)">
 </p>
 <p align="center"><sub>The same scene (<a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">examples/tour.py</a>): animated SVG on the left (101 kB), GIF on the right.</sub></p>
 
