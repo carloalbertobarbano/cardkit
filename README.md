@@ -13,10 +13,10 @@ All text is converted to outlines, mathtext included (`"$\hat{y} = \sum_i w_i \v
 frames pixel for pixel on any machine.
 
 <p align="center">
-  <img src="docs/tour_animated.svg" width="420" alt="cardkit tour (animated SVG)">
-  <img src="docs/tour.gif" width="420" alt="cardkit tour (GIF)">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="420" alt="cardkit tour (animated SVG)">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour.gif" width="420" alt="cardkit tour (GIF)">
 </p>
-<p align="center"><sub>The same scene (<a href="examples/tour.py">examples/tour.py</a>): animated SVG on the left (101 kB), GIF on the right.</sub></p>
+<p align="center"><sub>The same scene (<a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">examples/tour.py</a>): animated SVG on the left (101 kB), GIF on the right.</sub></p>
 
 It was built for scientific graphical abstracts, website cards and social-media videos, where you want real plots,
 real numbers and typeset maths, plus an SVG that stays sharp.
@@ -61,12 +61,12 @@ scene.save_all("out/quickstart", "gif", "svg", poster=4.5)
 # -> out/quickstart.gif, out/quickstart_animated.svg, out/quickstart_poster.png
 ```
 
-<p align="center"><img src="docs/quickstart_animated.svg" width="300" alt="quick start result"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/quickstart_animated.svg" width="300" alt="quick start result"></p>
 
 To preview while you work, run `scene.frame(2.0)`, which returns a PIL image (it shows inline in Jupyter), or
 `scene.storyboard("board.png")` for a contact sheet of the whole animation:
 
-<p align="center"><img src="docs/tour_storyboard.png" width="640" alt="storyboard"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_storyboard.png" width="640" alt="storyboard"></p>
 
 ---
 
@@ -251,26 +251,12 @@ Timeline(duration, intro=0.0, holds=None, hold=0.9)    .warp(T)  .to_display(tau
 
 ## Examples and tests
 
-* [`examples/quickstart.py`](examples/quickstart.py): the quick start above.
-* [`examples/tour.py`](examples/tour.py): intro, groups, holds, motion along a path, keyframed colour, a counter,
+* [`examples/quickstart.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/quickstart.py): the quick start above.
+* [`examples/tour.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py): intro, groups, holds, motion along a path, keyframed colour, a counter,
   mathtext, an image, a progress indicator, the storyboard and the text check.
 * `python -m unittest discover tests`. The tests include a SMIL evaluator that checks the compressed SVG animates exactly
   like the uncompressed one.
 
-## Legacy module-level API
+## License
 
-The original single-file cardkit kept its state in module globals. That API still works unchanged, so older scripts
-keep producing byte-identical output:
-
-```python
-import cardkit as K
-K.DUR = 25.0                         # loop length (display time)
-K.WARP = warp                        # display time -> scene time
-K.GROUP_ENV["f1"] = env              # group envelopes
-K.GROUP_WIN["f1"] = (t0, t1)         # SVG sampling windows (Scene computes these automatically)
-K.draw_all(ax, prims, t, only=None, env1=False)
-K.export_svg(prims, "card.svg", bg, title)
-K.text_bbox(prim, t)
-```
-
-Use `Scene` for new work: it holds the same state per scene, supports any size, and adds the exporters and checks.
+MIT, see [LICENSE](https://github.com/carloalbertobarbano/cardkit/blob/main/LICENSE).

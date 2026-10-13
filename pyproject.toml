@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Write an animated scene once in Python and export it as GIF, WebP, MP4 and a looping, script-free animated SVG that look identical."
 readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Carlo Alberto Barbano" }]
 dependencies = ["numpy", "matplotlib>=3.5", "pillow>=9.1"]
 keywords = ["animation", "svg", "smil", "matplotlib", "gif", "graphical abstract", "scientific figures"]
@@ -16,6 +18,11 @@ classifiers = [
     "Topic :: Multimedia :: Graphics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
+
+[project.urls]
+Homepage = "https://github.com/carloalbertobarbano/cardkit"
+Source = "https://github.com/carloalbertobarbano/cardkit"
+Issues = "https://github.com/carloalbertobarbano/cardkit/issues"
 
 [project.optional-dependencies]
 video = ["imageio-ffmpeg"]
