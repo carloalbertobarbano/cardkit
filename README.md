@@ -113,6 +113,9 @@ Circ(c=lambda t: (1 + t, 4.5), r=0.2, fill="#e17d38")             # moves right 
 Txt(lambda t: f"{int(100 * t)} %", (4.5, 4.5), 30, ha="center")   # a counter
 ```
 
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/network_animated.svg" width="360" alt="network example"></p>
+<p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/network.py">network.py</a>: about 80 edges whose colour and width are functions of time (activation waves, then the weights as they are learned), plus counters whose text changes.</sub></p>
+
 The helpers in [Timing helpers](#timing-helpers) cover the common cases without lambdas.
 
 ### 3. Five primitives
@@ -158,6 +161,9 @@ scene = ck.Scene(
 scene.duration                      # 29.8: the actual loop length (display time)
 scene.to_display(6.4)               # scene time -> display time
 ```
+
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="360" alt="tour example"></p>
+<p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">tour.py</a>: an intro authored at negative times, two groups, and a 0.8 s reading pause before each fade-out.</sub></p>
 
 Adding an intro or a pause never forces you to re-time the rest. The display-time functions (`frame`, `storyboard`,
 `check_text`, `save(..., at=)`) take display time, and `frame_at(tau)` and `poster=` take scene time.
@@ -238,6 +244,9 @@ scene.add(slab(cam, (0, 0, 0), matrix, 0.3, colors=lambda v: ck.mix("#fff", "#0f
 scene.add(tube(cam, ck.bezier(p0, c1, c2, p1), 0.04, "#6c5ce7", t0=1.0, dur=1.0))            # a shaded arrow that grows
 ```
 
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/three_d_animated.svg" width="360" alt="three_d example"></p>
+<p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/three_d.py">three_d.py</a>: a matrix slab, tubes that grow and cubes that recolour, then boxes that grow from the back to the front.</sub></p>
+
 `Camera.project(P)` maps (N, 3) world points to the slide, `Camera.lit(color, normal)` shades a colour, and
 `Camera.depth(P)` gives a value to use as `z` when separate objects overlap (closer objects get higher `z`).
 
@@ -256,6 +265,9 @@ To animate *inside* a rendered figure, render it in two states and fade between 
 [`brain.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py) renders an empty glass brain and the same brain with the activation, then turns the
 difference into an exact overlay whose opacity follows a signal. The outline never moves; only the activation fades.
 Render both states from the same figure layout (for example with `display.add_overlay`), so that they line up.
+
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/brain_animated.svg" width="360" alt="brain example"></p>
+<p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py">brain.py</a>: nilearn glass brains whose activation follows the BOLD curve, then a connectome next to node-strength bars drawn with cardkit.</sub></p>
 
 Inside the SVG, images are embedded as palette PNGs (128 colours) to keep files small, so smooth gradients can show
 some banding there. Mathtext follows matplotlib's `rcParams` (for example `plt.rcParams["mathtext.fontset"] = "cm"`),
