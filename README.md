@@ -68,6 +68,22 @@ To preview while you work, run `scene.frame(2.0)`, which returns a PIL image (it
 
 <p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_storyboard.png" width="640" alt="storyboard"></p>
 
+## Gallery
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/network_animated.svg" width="32%" alt="neural network example">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/three_d_animated.svg" width="32%" alt="3-D example">
+  <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/brain_animated.svg" width="32%" alt="nilearn example">
+</p>
+
+| example | shows |
+|---|---|
+| [`network.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/network.py) | an MLP: forward-pass activation waves, then training, with about 80 edges whose width and colour follow their weights; softmax bars, a loss curve, counters |
+| [`three_d.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/three_d.py) | `cardkit.three`: a connectivity matrix as a lit 3-D slab sending shaded tubes to recolouring label cubes, then a growing 3-D bar chart |
+| [`brain.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py) | nilearn glass brains whose activation follows a BOLD curve as it draws, then a connectome with a node-strength bar chart |
+
+Every image above is the animated SVG itself, with no GIF involved. Run `python docs/make_docs.py` to rebuild all the demos.
+
 ---
 
 ## The model in five ideas
@@ -205,15 +221,39 @@ scene.check_text(scene.to_display(6.0))
 `check_text(t, margin=0.25)` lists visible texts that overlap each other or come closer than `margin` units to the edge.
 It is cheap: run it at a few key instants after every layout change.
 
+## 3-D
+
+`cardkit.three` builds 3-D-looking objects from plain `Poly` faces, seen through a fixed oblique camera with Lambert
+lighting. Because the camera never moves, hidden faces are removed and faces are ordered once, when the scene is built.
+The objects can still grow, move and change colour over time, and the SVG stays fully vector.
+
+```python
+from cardkit.three import Camera, box, slab, tube
+
+cam = Camera(origin=(1.0, 2.0))                     # world axes: X right, D into the screen, Z up
+scene.add(box(cam, (0, 0, 0), (0.6, 0.6, ramp(1, 2) * 2.5), "#0f9d8a"))       # a bar that grows to 2.5 units
+scene.add(slab(cam, (0, 0, 0), matrix, 0.3, colors=lambda v: ck.mix("#fff", "#0f9d8a", v)))   # a matrix lying flat
+scene.add(tube(cam, ck.bezier(p0, c1, c2, p1), 0.04, "#6c5ce7", t0=1.0, dur=1.0))            # a shaded arrow that grows
+```
+
+`Camera.project(P)` maps (N, 3) world points to the slide, `Camera.lit(color, normal)` shades a colour, and
+`Camera.depth(P)` gives a value to use as `z` when separate objects overlap (closer objects get higher `z`).
+
 ## Using real figures
 
 `Img` takes any array, so you can render a matplotlib or nilearn figure to an RGBA array once and place it in the card:
 
 ```python
-fig = plt.figure(figsize=(4, 3), dpi=200); plotting.plot_connectome(..., figure=fig)
+fig = plt.figure(figsize=(6, 2.4), dpi=200)
+plotting.plot_glass_brain(stat_img, display_mode="lzr", figure=fig, annotate=False)
 fig.canvas.draw(); arr = np.asarray(fig.canvas.buffer_rgba()) / 255; plt.close(fig)
-scene.add(Img(arr, (0.5, 3.5, 4.0, 6.25), op=ramp(0.3, 0.9)))
+scene.add(Img(arr, (0.5, 8.5, 3.6, 6.8), op=ramp(0.3, 0.9)))
 ```
+
+To animate *inside* a rendered figure, render it in two states and fade between them.
+[`brain.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py) renders an empty glass brain and the same brain with the activation, then turns the
+difference into an exact overlay whose opacity follows a signal. The outline never moves; only the activation fades.
+Render both states from the same figure layout (for example with `display.add_overlay`), so that they line up.
 
 Inside the SVG, images are embedded as palette PNGs (128 colours) to keep files small, so smooth gradients can show
 some banding there. Mathtext follows matplotlib's `rcParams` (for example `plt.rcParams["mathtext.fontset"] = "cm"`),
@@ -254,6 +294,9 @@ Timeline(duration, intro=0.0, holds=None, hold=0.9)    .warp(T)  .to_display(tau
 * [`examples/quickstart.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/quickstart.py): the quick start above.
 * [`examples/tour.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py): intro, groups, holds, motion along a path, keyframed colour, a counter,
   mathtext, an image, a progress indicator, the storyboard and the text check.
+* [`examples/network.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/network.py), [`examples/three_d.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/three_d.py) and
+  [`examples/brain.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py): the gallery (the last one needs `pip install nilearn`).
+* `python docs/make_docs.py` rebuilds every demo image in `docs/`.
 * `python -m unittest discover tests`. The tests include a SMIL evaluator that checks the compressed SVG animates exactly
   like the uncompressed one.
 

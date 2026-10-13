@@ -18,7 +18,7 @@ from .text import U, text_path, text_width
 from .text import text_geom as _text_geom, text_bbox as _text_bbox
 from .scene import Scene, Group
 from .context import Context
-from . import render as _render, svg as _svg
+from . import render as _render, svg as _svg, three
 
 __version__ = "0.1.0"
 

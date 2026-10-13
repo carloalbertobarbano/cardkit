@@ -148,6 +148,23 @@ class TestScene(unittest.TestCase):
         self.assertEqual(s.add(Circ((1, 1), 0.1)).group, ck.BASE)
 
 
+class TestThree(unittest.TestCase):
+    def test_box_slab_tube(self):
+        from cardkit.three import Camera, box, slab, tube
+        cam = Camera(origin=(1.0, 2.0))
+        bar = box(cam, (0, 0, 0), (0.6, 0.6, ramp(1, 2) * 2.5), "#0f9d8a")
+        self.assertEqual(len(bar), 3)                                     # front, right and top faces are visible
+        top = max(bar, key=lambda f: np.asarray(f.pts(3.0))[:, 1].max())
+        self.assertAlmostEqual(np.asarray(top.pts(3.0))[:, 1].max() - np.asarray(top.pts(0.0))[:, 1].max(), 2.5, places=6)
+        mat = slab(cam, (0, 0, 0), np.eye(3), 0.3, colors=lambda v: ck.mix("#fff", "#0f9d8a", v))
+        self.assertEqual(len(mat), 2 + 9)
+        arrow = tube(cam, ck.bezier((0, 0, 0), (1, 0, 1), (2, 1, 1), (3, 1, 0)), 0.04, "#6c5ce7", t0=1.0, dur=1.0)
+        self.assertTrue(len(arrow) > 50)
+        s = ck.Scene(3); s.add(bar, mat, arrow)
+        p = os.path.join(tempfile.mkdtemp(), "three.svg"); s.save_svg(p); ET.parse(p)
+        self.assertEqual(s.frame(2.5, width_px=200).size, (200, 200))
+
+
 class TestLegacyAPI(unittest.TestCase):
     def test_module_level_globals(self):
         ck.DUR = 4.0; ck.WARP = lambda t: t; ck.GROUP_ENV.clear(); ck.GROUP_WIN.clear()
