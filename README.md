@@ -26,9 +26,11 @@ real numbers and typeset maths, plus an SVG that stays sharp.
 ## Install
 
 ```bash
-pip install -e path/to/cardkit            # numpy, matplotlib and pillow are the only dependencies
-pip install -e "path/to/cardkit[video]"   # + imageio-ffmpeg, for MP4 export if ffmpeg is not installed
+pip install cardkit-anim             # numpy, matplotlib and pillow are the only dependencies
+pip install "cardkit-anim[video]"    # + imageio-ffmpeg, for MP4 export if ffmpeg is not installed
 ```
+
+The package on PyPI is `cardkit-anim`; the module you import is `cardkit` (`import cardkit as ck`).
 
 ## Quick start
 
