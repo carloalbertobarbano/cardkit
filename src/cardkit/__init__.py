@@ -20,7 +20,7 @@ from .scene import Scene, Group
 from .context import Context
 from . import render as _render, svg as _svg, three
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = ["Scene", "Group", "Poly", "Path", "Circ", "Txt", "Img", "Fn", "fn", "ease", "seg", "lin", "ramp", "fade",
            "pulse", "keyframes", "tween", "along", "every", "Timeline", "rect", "rounded_rect", "bezier", "arc", "ngon",
