@@ -5,7 +5,7 @@ import shutil
 import multiprocessing as mp
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from .primitives import Prim, BASE
 from .text import U, text_bbox
@@ -195,19 +195,79 @@ class Scene:
                 shutil.rmtree(tmp, ignore_errors=True)
         return out
 
-    def storyboard(self, path=None, times=None, n=8, cols=4, width=360):
-        """Contact sheet of ``n`` evenly spaced frames (or the given display ``times``), labelled with their time.
+    def storyboard_keys(self, n=8):
+        """Default key frames as [(label, scene_time)]: for every group, the last instant it is fully visible (the end of
+        its reading pause, when everything in it has appeared); for every stretch where no group shows (an intro, an
+        outro on the base layer), its midpoint.  Without groups: ``n`` evenly spaced instants."""
+        D, dt = self.duration, 1.0 / self.fps
+        ts = np.arange(0.0, D, dt)
+        if not self.envelopes:
+            return [(f"{self.timeline.warp(t):.1f}s", self.timeline.warp(t))
+                    for t in np.linspace(0, D, n, endpoint=False) + D / n / 2]
+        ctx = self.context()
+        env = {g: np.array([ctx.env(g, t) for t in ts]) for g in self.envelopes}
+        keys = []
+        for g, e in env.items():
+            full = np.flatnonzero(e >= 0.995)
+            if len(full) == 0:
+                full = [int(np.argmax(e))]
+            keys.append((ts[full[-1]], str(g)))
+        none = np.all([e <= 0.004 for e in env.values()], axis=0)              # nothing but the base layer on screen
+        k = 0
+        while k < len(ts):
+            if none[k]:
+                j = k
+                while j + 1 < len(ts) and none[j + 1]:
+                    j += 1
+                if ts[j] - ts[k] >= 0.5:
+                    keys.append((ts[(k + j) // 2], "intro" if k == 0 else "outro" if j == len(ts) - 1 else f"base {ts[k]:.0f}s"))
+                k = j + 1
+            else:
+                k += 1
+        merged = []
+        for t, label in sorted(keys):                                         # groups ending together -> one frame
+            if merged and t - merged[-1][0] < 0.25:
+                merged[-1] = (t, merged[-1][1] + "+" + label)
+            else:
+                merged.append((t, label))
+        return [(label, self.timeline.warp(t)) for t, label in merged]
+
+    def storyboard(self, path=None, keys=None, *, cols=5, width=432, gap=12, background="#8a93a3", labels=False,
+                   check=False, save_frames=None, n=8):
+        """Contact sheet of key frames, each rendered at full resolution and downsampled to ``width`` px.
+
+        keys         scene times or (name, scene_time) pairs; default :meth:`storyboard_keys` (one finished frame per group)
+        labels       write each key's name under its tile
+        check        run :meth:`check_text` on every key frame
+        save_frames  also save each frame at full resolution as ``f"{save_frames}{name}.png"`` (e.g. ``"out/key_"``)
+
         Saves to ``path`` if given; returns the PIL image."""
-        times = list(times) if times is not None else list(np.linspace(0, self.duration, n, endpoint=False) + self.duration / n / 2)
-        ims = [self.frame(t, width_px=width) for t in times]
-        w, h = ims[0].size
-        rows = -(-len(ims) // cols)
-        sheet = Image.new("RGB", (cols * w + (cols + 1) * 8, rows * (h + 22) + 8), "#ffffff")
+        keys = self.storyboard_keys(n) if keys is None else [k if isinstance(k, tuple) else (f"{k:g}s", k) for k in keys]
+        tiles = []
+        for name, tau in keys:
+            t = self.to_display(tau)
+            if check:
+                print(f"{name:>10}", end=" ")
+                self.check_text(t)
+            im = self.frame(t)
+            if save_frames:
+                im.save(f"{save_frames}{name}.png")
+            tiles.append(im.resize((width, round(width * im.height / im.width)), Image.LANCZOS))
+        w, h = tiles[0].size
+        cols = min(cols, len(tiles))
+        rows = -(-len(tiles) // cols)
+        lab = 26 if labels else 0
+        try:
+            font = ImageFont.load_default(size=15)
+        except TypeError:                                                     # Pillow < 10.1
+            font = ImageFont.load_default()
+        sheet = Image.new("RGB", (cols * (w + gap) + gap, rows * (h + gap + lab) + gap), background)
         d = ImageDraw.Draw(sheet)
-        for k, (t, im) in enumerate(zip(times, ims)):
-            x, y = 8 + (k % cols) * (w + 8), 8 + (k // cols) * (h + 22)
+        for k, ((name, tau), im) in enumerate(zip(keys, tiles)):
+            x, y = gap + (k % cols) * (w + gap), gap + (k // cols) * (h + gap + lab)
             sheet.paste(im, (x, y))
-            d.text((x, y + h + 4), f"t = {t:.2f} s   (scene {self.timeline.warp(t):.2f})", fill="#555555")
+            if labels:
+                d.text((x, y + h + 5), f"{name}   ·   t = {tau:.2f} s", fill="#ffffff", font=font)
         if path:
             sheet.save(path)
         return sheet

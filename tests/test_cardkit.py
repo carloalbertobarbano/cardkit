@@ -132,6 +132,14 @@ class TestScene(unittest.TestCase):
         for k in ("gif", "webp", "poster"):
             self.assertTrue(os.path.getsize(out[k]) > 0)
 
+    def test_storyboard_keys(self):
+        keys = self.scene.storyboard_keys()
+        names = [k for k, _ in keys]
+        self.assertEqual(names, ["intro", "a", "b"])                          # intro gap, then one finished frame per group
+        self.assertAlmostEqual(keys[1][1], 2.65, delta=0.05)                  # last instant group "a" is fully visible
+        sheet = self.scene.storyboard(keys=[("x", 1.0), 2.0], width=100, gap=10)
+        self.assertEqual(sheet.size, (2 * 110 + 10, 110 + 10))
+
     def test_check_text(self):
         s = ck.Scene(1)
         s.add(Txt("overlap one", (1, 4), 20), Txt("overlap two", (1.2, 4.05), 20), Txt("edge", (8.9, 1), 12))

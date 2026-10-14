@@ -146,5 +146,5 @@ if __name__ == "__main__":
         for tau in (2.5, 4.5, 8.0, 9.5):
             scene.check_text(scene.to_display(tau))
         sys.exit()
-    scene.storyboard(os.path.join(out, "brain_storyboard.png"), n=8)
+    scene.storyboard(os.path.join(out, "brain_storyboard.png"))
     scene.save_all(os.path.join(out, "brain"), "gif", "svg", poster=9.5)

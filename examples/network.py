@@ -116,5 +116,5 @@ if __name__ == "__main__":
         for tau in (2.5, 5.0, 8.0, 10.5):
             scene.check_text(scene.to_display(tau))
         sys.exit()
-    scene.storyboard(os.path.join(out, "network_storyboard.png"), n=8)
+    scene.storyboard(os.path.join(out, "network_storyboard.png"))
     scene.save_all(os.path.join(out, "network"), "gif", "svg", poster=10.4)

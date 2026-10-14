@@ -84,5 +84,5 @@ if __name__ == "__main__":
             scene.check_text(scene.to_display(tau))
         sys.exit()
     print(scene)
-    scene.storyboard(os.path.join(out, "tour_storyboard.png"), n=8)
+    scene.storyboard(os.path.join(out, "tour_storyboard.png"))
     scene.save_all(os.path.join(out, "tour"), "gif", "svg", poster=7.5)

@@ -10,5 +10,5 @@ for name in sys.argv[1:] or ["quickstart", "tour", "brain", "network", "three_d"
     scene = importlib.import_module(name).scene
     scene.save_all(os.path.join(HERE, name), "gif", "svg", gif_width=480, progress=False)
     if name == "tour":
-        scene.storyboard(os.path.join(HERE, "tour_storyboard.png"), n=8)
+        scene.storyboard(os.path.join(HERE, "tour_storyboard.png"), labels=True)
     print("built", name)

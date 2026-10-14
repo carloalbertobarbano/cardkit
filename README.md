@@ -66,7 +66,9 @@ scene.save_all("out/quickstart", "gif", "svg", poster=4.5)
 <p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/quickstart_animated.svg" width="300" alt="quick start result"></p>
 
 To preview while you work, run `scene.frame(2.0)`, which returns a PIL image (it shows inline in Jupyter), or
-`scene.storyboard("board.png")` for a contact sheet of the whole animation:
+`scene.storyboard("board.png")` for a contact sheet of key frames. By default it shows one finished frame per group:
+the last instant the group is fully visible, when everything in it has appeared and nothing has started to fade. You
+can also pick the frames yourself, in scene time: `scene.storyboard("board.png", keys=[("hook", -1.3), ("results", 23.6)])`.
 
 <p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_storyboard.png" width="640" alt="storyboard"></p>
 
@@ -165,8 +167,8 @@ scene.to_display(6.4)               # scene time -> display time
 <p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="360" alt="tour example"></p>
 <p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">tour.py</a>: an intro authored at negative times, two groups, and a 0.8 s reading pause before each fade-out.</sub></p>
 
-Adding an intro or a pause never forces you to re-time the rest. The display-time functions (`frame`, `storyboard`,
-`check_text`, `save(..., at=)`) take display time, and `frame_at(tau)` and `poster=` take scene time.
+Adding an intro or a pause never forces you to re-time the rest. `frame`, `check_text` and `save(..., at=)` take display time;
+`frame_at(tau)`, `poster=` and the storyboard `keys` take scene time.
 
 ---
 
@@ -293,7 +295,8 @@ Scene(duration, size=(9, 9), background="#ffffff", *, origin=(0, 0), width_px=No
   .to_display(tau)                  scene time -> display time
   .frame(t, width_px=None, isolate=True)   PIL image at display time t
   .frame_at(tau)                    PIL image at scene time tau
-  .storyboard(path=None, times=None, n=8, cols=4, width=360)
+  .storyboard(path=None, keys=None, cols=5, width=432, labels=False, check=False, save_frames=None)
+  .storyboard_keys()                default storyboard keys: [(name, scene_time)], one finished frame per group
   .check_text(t, margin=0.25, min_alpha=0.2)
   .save(path, at=None, ...)         by extension: .svg .png .jpg .gif .webp .mp4
   .save_svg(path, at=None, dt=0.1, simplify=True, width=None)
