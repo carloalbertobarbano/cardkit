@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cardkit-anim"
-version = "0.2.0"
+version = "0.3.0"
 description = "Write an animated scene once in Python and export it as GIF, WebP, MP4 and a looping, script-free animated SVG that look identical."
 readme = "README.md"
 requires-python = ">=3.9"
