@@ -17,6 +17,7 @@ from .shapes import rect, rounded_rect, bezier, arc, ngon, arrow_head, mix, shad
 from .text import U, text_path, text_width
 from .text import text_geom as _text_geom, text_bbox as _text_bbox
 from .scene import Scene, Group
+from .plot import Axes, arrow
 from .context import Context
 from . import render as _render, svg as _svg, three
 
@@ -24,7 +25,7 @@ __version__ = "0.2.0"
 
 __all__ = ["Scene", "Group", "Poly", "Path", "Circ", "Txt", "Img", "Fn", "fn", "ease", "seg", "lin", "ramp", "fade",
            "pulse", "keyframes", "tween", "along", "every", "Timeline", "rect", "rounded_rect", "bezier", "arc", "ngon",
-           "arrow_head", "mix", "shade", "lighten", "colorize", "text_width", "U"]
+           "arrow_head", "Axes", "arrow", "mix", "shade", "lighten", "colorize", "text_width", "U"]
 
 
 # ---------------------------------------------------------------------------------------------------------------------

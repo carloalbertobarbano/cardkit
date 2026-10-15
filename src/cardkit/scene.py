@@ -82,6 +82,12 @@ class Scene:
             self.envelopes[str(name)] = envelope
         return Group(str(name), self)
 
+    def axes(self, rect, xlim=(0.0, 1.0), ylim=(0.0, 1.0), **kw):
+        """Minimal scientific axes at ``rect`` = (x, y, width, height) in slide units, added to the scene (see
+        :class:`cardkit.plot.Axes`).  Plot with ``ax.line``, ``ax.scatter``, ``ax.fill_between``, ``ax.bar`` ..."""
+        from .plot import Axes
+        return Axes(rect, xlim, ylim, scene=self, **kw)
+
     def add(self, *items):
         """Add primitives (or lists of primitives).  Returns the single primitive, or the list."""
         flat = []
@@ -144,11 +150,13 @@ class Scene:
         return [j[2] for j in jobs]
 
     # ------------------------------------------------------------ export
-    def save_svg(self, path, at=None, dt=0.1, simplify=True, width=None):
+    def save_svg(self, path, at=None, dt=0.1, simplify=True, width=None, glyphs=True):
         """Animated SVG (SMIL, loops, plays in <img>); ``at=t`` writes a static snapshot at display time t instead.
+        glyphs=True defines each glyph once and reuses it (much smaller files with lots of text or counters).
         Returns the file size in bytes."""
         windows = {g: self._window(g, dt) for g in self.envelopes}
-        return _svg.export(self.prims, path, self.context(windows, width), self.background, self.title, dt, simplify, at)
+        return _svg.export(self.prims, path, self.context(windows, width), self.background, self.title, dt, simplify, at,
+                           glyphs)
 
     def save(self, path, *, at=None, fps=None, width_px=None, workers=None, **kw):
         """Save by extension: .svg (animated, or static with ``at``), .png / .jpg (frame at display time ``at``),

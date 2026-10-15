@@ -16,7 +16,7 @@ frames pixel for pixel on any machine.
   <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour_animated.svg" width="48%" alt="cardkit tour (animated SVG)">
   <img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/tour.gif" width="48%" alt="cardkit tour (GIF)">
 </p>
-<p align="center"><sub>The same scene (<a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">examples/tour.py</a>): animated SVG on the left (101 kB), GIF on the right.</sub></p>
+<p align="center"><sub>The same scene (<a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py">examples/tour.py</a>): animated SVG on the left (55 kB), GIF on the right.</sub></p>
 
 It was built for scientific graphical abstracts, website cards and social-media videos, where you want real plots,
 real numbers and typeset maths, plus an SVG that stays sharp.
@@ -127,7 +127,7 @@ The helpers in [Timing helpers](#timing-helpers) cover the common cases without 
 | `Poly(pts, fill=None, stroke=None, lw=0)` | closed polygon | `pts`: (N, 2) vertices |
 | `Path(pts, color, lw=1.5, draw=1.0, dash=None, cap="round")` | open polyline | `draw`: fraction drawn, 0..1; `dash`: (on, off) in units |
 | `Circ(c, r, fill=None, stroke=None, lw=0)` | circle | centre and radius in units |
-| `Txt(s, xy, size=12, color="#000", ha="left", weight=, style=, family=)` | text as outlines | `xy` on the baseline; `ha`: left / center / right |
+| `Txt(s, xy, size=12, color="#000", ha="left", weight=, style=, family=, rotation=0)` | text as outlines | `xy` on the baseline; `ha`: left / center / right; `rotation` in degrees |
 | `Img(arr, extent, interp="bilinear")` | raster image | `arr`: (H, W, 3 or 4) array; `extent`: (x0, x1, y0, y1) |
 
 They all also take `op` (opacity, 0..1), `z` (drawing order: higher is on top) and `group` (see below). If you prefer
@@ -211,7 +211,7 @@ scene.save_all("out/card", "gif", "webp", "mp4", "svg", poster=23.6)   # renders
 
 | format | notes |
 |---|---|
-| **SVG** | `save_svg(path, at=None, dt=0.1, simplify=True)`. Attributes are sampled every `dt` s; runs of identical samples are dropped (about half the size, same animation). Plays in `<img>`. |
+| **SVG** | `save_svg(path, at=None, dt=0.1, simplify=True, glyphs=True)`. Attributes are sampled every `dt` s; runs of identical samples are dropped, and each glyph is defined once and reused (both shrink files a lot without changing the result). Plays in `<img>`. |
 | **GIF** | Pillow only, no ffmpeg. One shared 256-colour palette without dithering (crisp flat colours), `gif_fps=15`, `gif_width=720`. |
 | **WebP** | Full resolution, `webp_quality=90`. |
 | **MP4** | H.264 / yuv420p / faststart, `crf=16`: plays on LinkedIn, X, Slack and Keynote. Needs ffmpeg (`$FFMPEG`, `PATH`, or `pip install imageio-ffmpeg`). |
@@ -230,6 +230,42 @@ scene.check_text(scene.to_display(6.0))
 
 `check_text(t, margin=0.25)` lists visible texts that overlap each other or come closer than `margin` units to the edge.
 It is cheap: run it at a few key instants after every layout change.
+
+## Plots
+
+`scene.axes(rect, xlim, ylim, ...)` gives minimal L-shaped scientific axes placed at `rect = (x, y, width, height)` in
+slide units. They draw spines, ticks, tick labels and axis labels (the y label rotated), and map data coordinates to
+the slide. Plotting methods create ordinary primitives, and any data argument can be a function of time:
+
+```python
+ax = scene.axes((1, 1, 4.6, 2.7), xlim=(0, 1), ylim=(-2, 2), xlabel="feature", ylabel="target")
+ax.line(x, fit, "#0f9d8a", 2.4)                                    # fit(t) -> array: the curve morphs
+ax.scatter(xp, lambda t: fit_at(t) + noise, r=0.05, fill="#6c5ce7")
+ax.stems(xp, fit_at, lambda t: fit_at(t) + noise, "#6c5ce7", 0.7)  # residuals that follow the fit
+
+ax2 = scene.axes((7, 1, 4.4, 2.7), xlim=(0.7, 3), ylim=(0, 0.45), xticks=[1, 2, 3], xticklabels=["10", "100", "1000"])
+ax2.line(ln, ours, "#0f9d8a", 2.6, reveal=ramp(1, 6))             # grows along x, so several curves advance together
+scene.add(Circ(ax2.tip(ln, ours, ramp(1, 6)), 0.06, fill="#0f9d8a"))   # a dot riding the growing end
+```
+
+<p align="center"><img src="https://raw.githubusercontent.com/carloalbertobarbano/cardkit/main/docs/plots_animated.svg" width="560" alt="plots example"></p>
+<p align="center"><sub><a href="https://github.com/carloalbertobarbano/cardkit/blob/main/examples/plots.py">plots.py</a>: a fit that morphs between models with its residuals, and learning curves revealed along x.</sub></p>
+
+| method | draws |
+|---|---|
+| `line(x, y, color, lw, reveal=None, draw=None)` | a curve; `reveal` grows it along the data order, `draw` by arc length |
+| `tip(x, y, reveal)` | the position of a revealed line's growing end, as a function of time |
+| `scatter(x, y, r, fill)` | one circle per point |
+| `stems(x, y0, y1, color, lw)` | vertical segments (residuals, error bars) |
+| `fill_between(x, y0, y1, fill)` | a band (for example a predictive interval) |
+| `bar(x, height, width, fill)` | vertical bars |
+| `vspan(x0, x1)`, `vline(x)`, `hline(y)` | shaded regions and reference lines |
+| `text(x, y, s, coords="data" or "axes")` | a label in data or axes coordinates |
+| `X(x)`, `Y(y)`, `pts(x, y)` | data → slide coordinates, to place your own primitives |
+
+The axes options follow matplotlib: `xticks`/`xticklabels`, `yticks`/`yticklabels`, `labelpad`, `tickpad` and
+`tick_len` (in slide units), and `label_size`/`tick_size` (in points). `ck.arrow(p0, p1)` draws an arrow with a
+filled head, like matplotlib's `"-|>"`.
 
 ## 3-D
 
@@ -290,6 +326,7 @@ and so does the default font family.
 Scene(duration, size=(9, 9), background="#ffffff", *, origin=(0, 0), width_px=None, fps=30,
       intro=0.0, holds=None, hold=0.9, title="")
   .add(*prims)                      add primitives or lists of primitives; returns them
+  .axes(rect, xlim, ylim, **kw)     scientific axes in the scene (cardkit.plot.Axes)
   .group(name, envelope=None)       register a group; also a context manager
   .duration                         loop length in display seconds
   .to_display(tau)                  scene time -> display time
@@ -299,7 +336,7 @@ Scene(duration, size=(9, 9), background="#ffffff", *, origin=(0, 0), width_px=No
   .storyboard_keys()                default storyboard keys: [(name, scene_time)], one finished frame per group
   .check_text(t, margin=0.25, min_alpha=0.2)
   .save(path, at=None, ...)         by extension: .svg .png .jpg .gif .webp .mp4
-  .save_svg(path, at=None, dt=0.1, simplify=True, width=None)
+  .save_svg(path, at=None, dt=0.1, simplify=True, width=None, glyphs=True)
   .save_all(stem, *formats, poster=None, fps=None, width_px=None, workers=None,
             gif_fps=15, gif_width=720, webp_quality=90, crf=16)
   .render_frames(folder, fps=None, width_px=None, workers=None)
@@ -311,6 +348,7 @@ Timeline(duration, intro=0.0, holds=None, hold=0.9)    .warp(T)  .to_display(tau
 * [`examples/quickstart.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/quickstart.py): the quick start above.
 * [`examples/tour.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/tour.py): intro, groups, holds, motion along a path, keyframed colour, a counter,
   mathtext, an image, a progress indicator, the storyboard and the text check.
+* [`examples/plots.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/plots.py): animated axes, morphing fits, curves revealed along x.
 * [`examples/network.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/network.py), [`examples/three_d.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/three_d.py) and
   [`examples/brain.py`](https://github.com/carloalbertobarbano/cardkit/blob/main/examples/brain.py): the gallery (the last one needs `pip install nilearn`).
 * `python docs/make_docs.py` rebuilds every demo image in `docs/`.

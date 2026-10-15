@@ -49,14 +49,15 @@ class Circ(Prim):
 class Txt(Prim):
     """Text, converted to outlines (mathtext such as ``"$\\varphi_1$"`` works).
     ``xy``: anchor on the baseline, ``ha``: "left" | "center" | "right", ``size`` in points (constant).
-    ``s`` may be a function of time (e.g. a counter); each distinct string becomes its own outline in the SVG."""
+    ``s`` may be a function of time (e.g. a counter); each distinct string becomes its own outline in the SVG.
+    ``rotation``: degrees counter-clockwise around the anchor (constant), e.g. 90 for a y-axis label."""
     kind = "txt"
 
     def __init__(self, s, xy, size=12, color="#000", ha="left", weight="normal", style="normal", op=1.0, group=BASE, z=0,
-                 family=None):
+                 family=None, rotation=0.0):
         super().__init__(group, z, op)
         self.s, self.xy, self.size, self.color, self.ha, self.weight, self.style = s, xy, size, color, ha, weight, style
-        self.family = family
+        self.family, self.rotation = family, rotation
 
 
 class Img(Prim):

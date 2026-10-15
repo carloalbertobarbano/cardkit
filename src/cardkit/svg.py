@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.colors import to_hex
 from PIL import Image
 
-from .text import text_geom
+from .text import text_geom, text_path, text_layout, FONT_SCALE
 
 
 def f2(v): return f"{v:.2f}"
@@ -33,8 +33,9 @@ def png_b64(arr, scale=1.0, colors=128):
 
 
 class _Exporter:
-    def __init__(self, ctx, dt=0.1, simplify=False, at=None):
-        self.ctx, self.dt, self.simplify, self.at = ctx, dt, simplify, at
+    def __init__(self, ctx, dt=0.1, simplify=False, at=None, glyphs=False):
+        self.ctx, self.dt, self.simplify, self.at, self.glyphs = ctx, dt, simplify, at, glyphs
+        self.glyph_ids, self.defs = {}, []
         U, top, left = ctx.unit, ctx.top, ctx.left
         self.X = lambda x: x * U - left if left else x * U          # keeps legacy output byte-identical when left == 0
         self.Y = lambda y: top - y * U
@@ -77,9 +78,9 @@ class _Exporter:
     def pts_str(self, pts): return " ".join(f"{self.X(x):.2f},{self.Y(y):.2f}" for x, y in np.asarray(pts))
     def d_str(self, pts): return "M" + " L".join(f"{self.X(x):.2f},{self.Y(y):.2f}" for x, y in np.asarray(pts))
 
-    def path_d(self, V_, C_):
+    def path_d(self, V_, C_, P=None):
         out, i = [], 0
-        P = lambda v: f"{self.X(v[0]):.2f},{self.Y(v[1]):.2f}"
+        P = P or (lambda v: f"{self.X(v[0]):.2f},{self.Y(v[1]):.2f}")
         while i < len(C_):
             c = C_[i]
             if c == 1: out.append("M" + P(V_[i])); i += 1
@@ -149,10 +150,15 @@ class _Exporter:
                 continue
             idx = [i for i, q in enumerate(strs) if q == s_]
             pp = _TextAt(s_, p)
-            gg = text_geom(pp, ts[idx[0]], v)
-            if gg is None:
-                continue
-            d = self.path_d(*gg)
+            if self.glyphs:
+                body = self.glyph_text(pp, ts[idx[0]])
+                if body is None:
+                    continue
+            else:
+                gg = text_geom(pp, ts[idx[0]], v)
+                if gg is None:
+                    continue
+                d = self.path_d(*gg)
             ops = [f2(float(v(p.op, t)) if q == s_ else 0.0) for t, q in zip(ts, strs)]
             col0, ca = self.attr(p.color, "fill", ts, hexc, True)
             anim_op = "" if len(set(ops)) == 1 else self.anim("opacity", ts, ops)
@@ -162,8 +168,35 @@ class _Exporter:
                 offs = [f"{(v(p.xy, t)[0] - x_ref) * U:.2f},{-(v(p.xy, t)[1] - y_ref) * U:.2f}" for t in ts]
                 if len(set(offs)) > 1:
                     move = self.anim("transform", ts, offs).replace("<animate ", '<animateTransform type="translate" ', 1)
-            out.append(f'<path d="{d}" fill="{col0}" opacity="{ops[0]}">{anim_op}{ca}{move}</path>')
+            if self.glyphs:
+                out.append(f'<g fill="{col0}" opacity="{ops[0]}">{anim_op}{ca}{move}{body}</g>')
+            else:
+                out.append(f'<path d="{d}" fill="{col0}" opacity="{ops[0]}">{anim_op}{ca}{move}</path>')
         return "".join(out)
+
+    def glyph_text(self, p, t):
+        """a text frozen to one string as <use> references to glyphs defined once in <defs> (same geometry as TextPath)"""
+        v, U = self.ctx.v, self.ctx.unit
+        V_, _ = text_path(p.s, p.size, p.weight, p.style, p.family)
+        if len(V_) == 0:
+            return None
+        xmin, xmax = V_[:, 0].min(), V_[:, 0].max()
+        sh = {"left": 0.0, "center": -(xmin + xmax) / 2, "right": -xmax}[p.ha] * U          # in points
+        info, gmap, rects = text_layout(p.s, p.weight, p.style, p.family)
+        k = p.size / FONT_SCALE                                                              # points per font unit
+        uses = []
+        for g, gx, gy, gs in info:
+            if g not in self.glyph_ids:
+                gid = f"g{len(self.glyph_ids)}"
+                self.glyph_ids[g] = gid
+                self.defs.append(f'<path id="{gid}" d="{self.path_d(*gmap[g], P=lambda q: f"{q[0]:.1f},{q[1]:.1f}")}"/>')
+            uses.append(f'<use xlink:href="#{self.glyph_ids[g]}" transform="translate({f2(sh + gx * k)},{f2(-gy * k)}) '
+                        f'scale({gs * k:.4f},{-gs * k:.4f})"/>')
+        for rv, rc in rects:
+            uses.append(f'<path d="{self.path_d(rv, rc, P=lambda q: f"{sh + q[0] * k:.2f},{-q[1] * k:.2f}")}"/>')
+        x, y = v(p.xy, t)
+        rot = f" rotate({-p.rotation:g})" if p.rotation else ""
+        return f'<g transform="translate({f2(self.X(x))},{f2(self.Y(y))}){rot}">{"".join(uses)}</g>'
 
     # ------------------------------------------------------------ document
     def document(self, prims, bg, title=""):
@@ -192,21 +225,23 @@ class _Exporter:
             back = (f'<image x="0" y="0" width="{W}" height="{H}" preserveAspectRatio="none" '
                     f'xlink:href="data:image/png;base64,{png_b64(np.asarray(bg), colors=None)}"/>')
         sw, sh = ctx.svg_size
+        defs = f'<defs>{"".join(self.defs)}</defs>' if self.defs else ""
         return (f'<?xml version="1.0" encoding="utf-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{sw}" height="{sh}">'
-                f'<title>{escape(title)}</title>{back}' + "".join(body) + "</svg>")
+                f'<title>{escape(title)}</title>{defs}{back}' + "".join(body) + "</svg>")
 
 
 class _TextAt:
     """a text primitive frozen to one string"""
     def __init__(self, s, p):
         self.s, self.xy, self.size, self.ha, self.weight, self.style = s, p.xy, p.size, p.ha, p.weight, p.style
-        self.family = getattr(p, "family", None)
+        self.family, self.rotation = getattr(p, "family", None), getattr(p, "rotation", 0.0)
 
 
-def export(prims, path, ctx, bg, title="", dt=0.1, simplify=False, at=None):
+def export(prims, path, ctx, bg, title="", dt=0.1, simplify=False, at=None, glyphs=False):
     """Write an SVG of ``prims``.  at=None: animated (SMIL, sampled every ``dt`` s); at=t: static snapshot at display time t.
-    simplify=True drops redundant samples (much smaller files, same animation).  Returns the size in bytes."""
-    svg = _Exporter(ctx, dt, simplify, at).document(prims, bg, title)
+    simplify=True drops redundant samples (much smaller files, same animation); glyphs=True defines every glyph once and
+    reuses it (much smaller text, identical geometry).  Returns the size in bytes."""
+    svg = _Exporter(ctx, dt, simplify, at, glyphs).document(prims, bg, title)
     with open(path, "w", encoding="utf-8") as f:
         f.write(svg)
     return len(svg)

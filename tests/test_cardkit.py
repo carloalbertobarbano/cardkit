@@ -112,7 +112,9 @@ class TestScene(unittest.TestCase):
         self.assertTrue(any(e.tag == SVG + "animateTransform" for e in root.iter()), "moving text should translate")
         circle = next(root.iter(SVG + "circle"))
         self.assertTrue(any(a.get("attributeName") == "cx" for a in circle))
-        self.assertEqual({g.get("id") for g in root.iter(SVG + "g")}, {"ui", "a", "b"})
+        self.assertEqual({g.get("id") for g in root.iter(SVG + "g") if g.get("id")}, {"ui", "a", "b"})
+        self.assertTrue(len(list(root.iter(SVG + "use"))) > 0, "text glyphs are defined once and reused")
+        self.assertEqual(len({p.get("id") for p in root.find(SVG + "defs")}), len(list(root.find(SVG + "defs"))))
         snap = os.path.join(self.tmp, "snap.svg")
         self.scene.save(snap, at=2.0)
         self.assertFalse([e for e in ET.parse(snap).iter() if "animate" in e.tag], "static snapshot has no animation")
@@ -154,6 +156,28 @@ class TestScene(unittest.TestCase):
         self.assertEqual(p.group, "g"); self.assertEqual(g, "g")
         self.assertAlmostEqual(s.envelopes["g"](2.0), 1.0)
         self.assertEqual(s.add(Circ((1, 1), 0.1)).group, ck.BASE)
+
+
+class TestPlotAndText(unittest.TestCase):
+    def test_rotated_text(self):
+        t = Txt("label", (2, 3), 12, rotation=90)
+        x0, x1, y0, y1 = ck.text_bbox(t, 0)
+        self.assertLess(x1 - x0, y1 - y0)                                  # vertical
+        self.assertLessEqual(x1, 2 + 0.06); self.assertGreaterEqual(y0, 3 - 0.01)
+
+    def test_axes(self):
+        s = ck.Scene(4)
+        ax = s.axes((1, 1, 4, 3), xlim=(0, 10), ylim=(0, 1), xlabel="x", ylabel="y", xticks=[0, 5, 10])
+        np.testing.assert_allclose(ax.pts([0, 10], [0, 1]), [[1, 1], [5, 4]])
+        x = np.linspace(0, 10, 50)
+        line = ax.line(x, x / 10, reveal=ramp(1, 3))
+        self.assertEqual(line.draw(0.0), 0.0); self.assertAlmostEqual(line.draw(5.0), 1.0)
+        np.testing.assert_allclose(ax.tip(x, x / 10, ramp(1, 3, eased=False))(2.0), [3, 2.5], atol=1e-9)
+        dots = ax.scatter([1, 2], lambda t: np.array([0.2, 0.4]) * t, r=0.05)
+        np.testing.assert_allclose(dots[1].c(1.0), ax.pts([2], [0.4])[0])
+        self.assertTrue(len(s.prims) > 8)
+        p = os.path.join(tempfile.mkdtemp(), "ax.svg"); s.save_svg(p); ET.parse(p)
+        self.assertEqual(s.check_text(2.0, verbose=False), [])
 
 
 class TestThree(unittest.TestCase):
