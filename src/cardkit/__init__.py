@@ -70,4 +70,4 @@ def draw_all(ax, prims, t, only=None, env1=False):
 
 def export_svg(prims, path, bg, title="", dt=0.1, simplify=False):
     """Animated SVG of a 9 x 9 card (legacy API).  Returns the size in bytes."""
-    return _svg.export(prims, path, _legacy_ctx(), bg, title, dt, simplify)
+    return _svg.export(prims, path, _legacy_ctx(), bg, title, dt, simplify, legacy=True)

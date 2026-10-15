@@ -119,6 +119,19 @@ class TestScene(unittest.TestCase):
         self.scene.save(snap, at=2.0)
         self.assertFalse([e for e in ET.parse(snap).iter() if "animate" in e.tag], "static snapshot has no animation")
 
+    def test_counter_steps_discretely(self):
+        s = ck.Scene(3)
+        s.add(Txt(lambda t: str(int(10 * ck.lin(t, 0.5, 2.5))), (4, 4), 20, op=ramp(0, 0.5)))
+        p = os.path.join(self.tmp, "c.svg"); s.save_svg(p)
+        root = ET.parse(p).getroot()
+        anims = [a for a in root.iter(SVG + "animate") if a.get("attributeName") == "opacity"]
+        switches = [a for a in anims if a.get("calcMode") == "discrete"]
+        self.assertEqual(len(switches), 11)                                 # one per value 0..10, each switched on/off
+        fades = [a for a in anims if a.get("calcMode") != "discrete"]
+        self.assertEqual(len(fades), 1)                                     # the text's own fade stays smooth
+        for t in np.linspace(0, 3, 61, endpoint=False):                     # exactly one value visible at any time
+            self.assertEqual(sum(smil_value(a, t) == "1" for a in switches), 1)
+
     def test_varying_point_count_is_discrete(self):
         s = ck.Scene(2)
         s.add(Poly(lambda t: ck.rect(1, 1, 2, 2) if t < 1 else ck.ngon((4, 4), 1, 6), fill="#000"))

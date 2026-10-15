@@ -33,8 +33,8 @@ def png_b64(arr, scale=1.0, colors=128):
 
 
 class _Exporter:
-    def __init__(self, ctx, dt=0.1, simplify=False, at=None, glyphs=False):
-        self.ctx, self.dt, self.simplify, self.at, self.glyphs = ctx, dt, simplify, at, glyphs
+    def __init__(self, ctx, dt=0.1, simplify=False, at=None, glyphs=False, legacy=False):
+        self.ctx, self.dt, self.simplify, self.at, self.glyphs, self.legacy = ctx, dt, simplify, at, glyphs, legacy
         self.glyph_ids, self.defs = {}, []
         U, top, left = ctx.unit, ctx.top, ctx.left
         self.X = lambda x: x * U - left if left else x * U          # keeps legacy output byte-identical when left == 0
@@ -144,6 +144,9 @@ class _Exporter:
         """one outlined <path> per distinct string; opacity switches between them; a moving anchor becomes a translate"""
         v, U = self.ctx.v, self.ctx.unit
         strs = [v(p.s, t) for t in ts]
+        if not self.legacy and len(set(strs)) > 1:
+            fine = np.linspace(ts[0], ts[-1], (len(ts) - 1) * 4 + 1)       # strings sampled 4x finer: counters step smoothly
+            return self.switching_text(p, ts, fine, [v(p.s, t) for t in fine])
         out = []
         for s_ in dict.fromkeys(strs):
             if not s_:
@@ -173,6 +176,41 @@ class _Exporter:
             else:
                 out.append(f'<path d="{d}" fill="{col0}" opacity="{ops[0]}">{anim_op}{ca}{move}</path>')
         return "".join(out)
+
+    def move(self, p, ts, t_ref):
+        """animateTransform for a moving anchor, relative to its position at t_ref ('' if it does not move)"""
+        if not callable(p.xy):
+            return ""
+        v, U = self.ctx.v, self.ctx.unit
+        x_ref, y_ref = v(p.xy, t_ref)
+        offs = [f"{(v(p.xy, t)[0] - x_ref) * U:.2f},{-(v(p.xy, t)[1] - y_ref) * U:.2f}" for t in ts]
+        if len(set(offs)) == 1:
+            return ""
+        return self.anim("transform", ts, offs).replace("<animate ", '<animateTransform type="translate" ', 1)
+
+    def switching_text(self, p, ts, fine, strs):
+        """A text whose string changes (a counter): the strings switch instantly (discrete opacity on each, sampled at
+        ``fine`` times), while the text's own opacity and colour animate smoothly (at ``ts``) on the enclosing group.
+        So a counter steps 0, 1, 2 ... cleanly instead of cross-fading between consecutive values."""
+        v = self.ctx.v
+        op0, opa = self.attr(p.op, "opacity", ts, lambda x: f2(float(x)))
+        col0, ca = self.attr(p.color, "fill", ts, hexc, True)
+        inner = []
+        for s_ in dict.fromkeys(strs):
+            if not s_:
+                continue
+            t_ref = fine[strs.index(s_)]
+            pp = _TextAt(s_, p)
+            if self.glyphs:
+                body = self.glyph_text(pp, t_ref)
+            else:
+                gg = text_geom(pp, t_ref, v)
+                body = None if gg is None else f'<path d="{self.path_d(*gg)}"/>'
+            if body is None:
+                continue
+            on = ["1" if q == s_ else "0" for q in strs]
+            inner.append(f'<g opacity="{on[0]}">{self.anim("opacity", fine, on, discrete=True)}{self.move(p, ts, t_ref)}{body}</g>')
+        return f'<g fill="{col0}" opacity="{op0}">{opa}{ca}{"".join(inner)}</g>'
 
     def glyph_text(self, p, t):
         """a text frozen to one string as <use> references to glyphs defined once in <defs> (same geometry as TextPath)"""
@@ -237,11 +275,12 @@ class _TextAt:
         self.family, self.rotation = getattr(p, "family", None), getattr(p, "rotation", 0.0)
 
 
-def export(prims, path, ctx, bg, title="", dt=0.1, simplify=False, at=None, glyphs=False):
+def export(prims, path, ctx, bg, title="", dt=0.1, simplify=False, at=None, glyphs=False, legacy=False):
     """Write an SVG of ``prims``.  at=None: animated (SMIL, sampled every ``dt`` s); at=t: static snapshot at display time t.
     simplify=True drops redundant samples (much smaller files, same animation); glyphs=True defines every glyph once and
-    reuses it (much smaller text, identical geometry).  Returns the size in bytes."""
-    svg = _Exporter(ctx, dt, simplify, at, glyphs).document(prims, bg, title)
+    reuses it (much smaller text, identical geometry).  legacy=True reproduces the original cardkit output byte for byte.
+    Returns the size in bytes."""
+    svg = _Exporter(ctx, dt, simplify, at, glyphs, legacy).document(prims, bg, title)
     with open(path, "w", encoding="utf-8") as f:
         f.write(svg)
     return len(svg)
